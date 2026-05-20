@@ -26,6 +26,23 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 
 ---
 
+Executive Overview
+<img width="1280" height="719" alt="Page 1" src="https://github.com/user-attachments/assets/f2d3f739-8e80-4fe8-9a6b-74e4d1fe69fe" />
+
+Rent Affordability
+<img width="1280" height="720" alt="Page 2" src="https://github.com/user-attachments/assets/58ccdaa5-33bf-4849-9799-5db172ebc2dc" />
+
+Homeownership Affordability
+<img width="1278" height="720" alt="Page 3" src="https://github.com/user-attachments/assets/463442a3-878f-4185-b984-60e013efa905" />
+
+City Comparison Tool
+<img width="1278" height="719" alt="Page 4" src="https://github.com/user-attachments/assets/a1cc92e0-c646-42b1-aa5a-ada6792aa1f5" />
+
+Methodology & Data Sources
+<img width="1442" height="811" alt="Page 5" src="https://github.com/user-attachments/assets/85bbce99-54fa-463c-89e3-7fc1c5fb802e" />
+
+---
+
 ## Tech Stack
 
 | Layer | Tool |
