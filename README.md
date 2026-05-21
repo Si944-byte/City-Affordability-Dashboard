@@ -22,6 +22,7 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 | Rent Affordability | Rent burden by city, rent trend 2015–2026, rent vs income growth, what-if income slider |
 | Homeownership Affordability | Price-to-income ratio, estimated mortgage payments, years to save down payment, what-if calculator |
 | City Comparison Tool | Side-by-side city comparison, head-to-head metrics table, budget impact analysis, city classification |
+| Affordability Signals | Z-score by city, cumulative rent-income divergence since 2015, Z-score trend for top 5 most stressed cities, divergence vs pressure score scatter |
 | Methodology & Data Sources | Metric definitions, data sources, affordability pressure score formula, assumptions |
 
 ---
