@@ -39,6 +39,9 @@ Homeownership Affordability
 City Comparison Tool
 <img width="1278" height="719" alt="Page 4" src="https://github.com/user-attachments/assets/a1cc92e0-c646-42b1-aa5a-ada6792aa1f5" />
 
+Affordability Signals
+<img width="1279" height="719" alt="Page 5 (Affordability)" src="https://github.com/user-attachments/assets/74b5c210-cb9a-40ad-a988-1d6b684b2937" />
+
 Methodology & Data Sources
 <img width="1442" height="811" alt="Page 5" src="https://github.com/user-attachments/assets/85bbce99-54fa-463c-89e3-7fc1c5fb802e" />
 
