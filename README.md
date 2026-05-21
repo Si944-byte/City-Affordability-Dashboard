@@ -276,8 +276,8 @@ A household earning $75,000 annually moving from Miami to Minneapolis would save
 
 - [ ] Add CPI and inflation data for real wage growth calculation
 - [ ] Add population and migration data from Census ACS
-- [ ] Build affordability Z-score to flag cities with historically stretched conditions
-- [ ] Add rent-income divergence metric showing cumulative gap since 2015
+- [x] Build affordability Z-score to flag cities with historically stretched conditions
+- [x] Add rent-income divergence metric showing cumulative gap since 2015
 - [ ] Expand to top 50 metros
 - [ ] Add Python-based forecasting (Prophet or ARIMA) for rent and affordability trends
 - [ ] Publish to Power BI Service for web access
