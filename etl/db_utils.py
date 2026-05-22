@@ -1,21 +1,55 @@
 """
 db_utils.py
 Shared database connection utility for City Affordability Dashboard ETL.
-Server: DESKTOP-1CRNFTD | Database: CityAffordability | SQL Server 2019
+
+Configuration:
+  Set environment variables or update .env file:
+  - SQL_SERVER   : SQL Server instance name (default: localhost)
+  - SQL_DATABASE : Database name (default: CityAffordability)
+
+  For Windows Authentication (default): no credentials needed.
+  For SQL Authentication: set SQL_USERNAME and SQL_PASSWORD.
 """
 
+import os
 import pyodbc
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
 
 # ----------------------------------------------------------------
-# Connection string
+# Load .env file if present
 # ----------------------------------------------------------------
-CONNECTION_STRING = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER="Your Server Name here";"
-    "DATABASE=CityAffordability;"
-    "Trusted_Connection=yes;"
-)
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
+# ----------------------------------------------------------------
+# Connection configuration — reads from environment variables
+# Falls back to defaults if not set
+# ----------------------------------------------------------------
+SQL_SERVER   = os.getenv("SQL_SERVER",   "localhost")
+SQL_DATABASE = os.getenv("SQL_DATABASE", "CityAffordability")
+SQL_USERNAME = os.getenv("SQL_USERNAME", "")
+SQL_PASSWORD = os.getenv("SQL_PASSWORD", "")
+
+# Build connection string
+if SQL_USERNAME and SQL_PASSWORD:
+    # SQL Server Authentication
+    CONNECTION_STRING = (
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        f"SERVER={SQL_SERVER};"
+        f"DATABASE={SQL_DATABASE};"
+        f"UID={SQL_USERNAME};"
+        f"PWD={SQL_PASSWORD};"
+    )
+else:
+    # Windows Authentication (default for local SQL Server)
+    CONNECTION_STRING = (
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        f"SERVER={SQL_SERVER};"
+        f"DATABASE={SQL_DATABASE};"
+        "Trusted_Connection=yes;"
+    )
 
 
 def get_connection():
@@ -41,8 +75,9 @@ def test_connection():
         cursor.execute("SELECT DB_NAME() AS db, GETDATE() AS server_time;")
         row = cursor.fetchone()
         print(f"[db_utils] Connected successfully.")
-        print(f"           Database  : {row.db}")
+        print(f"           Database   : {row.db}")
         print(f"           Server time: {row.server_time}")
+        print(f"           Server     : {SQL_SERVER}")
         conn.close()
     except Exception as e:
         print(f"[db_utils] Connection test FAILED: {e}")

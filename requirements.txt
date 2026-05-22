@@ -1,0 +1,18 @@
+# City Affordability Dashboard — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Database connectivity
+pyodbc==5.1.0
+
+# Data manipulation
+pandas==2.2.2
+numpy==1.26.4
+
+# HTTP requests (API calls + file downloads)
+requests==2.31.0
+
+# Environment variable management
+python-dotenv==1.0.1
+
+# Date utilities
+python-dateutil==2.9.0

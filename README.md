@@ -1,6 +1,6 @@
 # U.S. City Affordability & Economic Opportunity Dashboard
 
-A data engineering and analytics portfolio project that measures housing affordability across the 25 largest U.S. metro areas using a full Python → SQL Server → Power BI pipeline.
+An end-to-end Power BI and SQL analytics project that measures housing affordability pressure across the 25 largest U.S. metros using rent, home value, income, unemployment, and mortgage-rate data.
 
 ---
 
@@ -14,6 +14,28 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 
 ---
 
+## Dashboard Screenshots
+
+### Executive Overview
+![Executive Overview](screenshots/page1_executive_overview.png)
+
+### Rent Affordability
+![Rent Affordability](screenshots/page2_rent_affordability.png)
+
+### Homeownership Affordability
+![Homeownership](screenshots/page3_homeownership.png)
+
+### City Comparison Tool
+![City Comparison](screenshots/page4_city_comparison.png)
+
+### Affordability Signals
+![Affordability Signals](screenshots/page6_affordability_signals.png)
+
+### Methodology
+![Methodology](screenshots/page5_methodology.png)
+
+---
+
 ## Dashboard Pages
 
 | Page | Purpose |
@@ -22,28 +44,41 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 | Rent Affordability | Rent burden by city, rent trend 2015–2026, rent vs income growth, what-if income slider |
 | Homeownership Affordability | Price-to-income ratio, estimated mortgage payments, years to save down payment, what-if calculator |
 | City Comparison Tool | Side-by-side city comparison, head-to-head metrics table, budget impact analysis, city classification |
-| Affordability Signals | Z-score by city, cumulative rent-income divergence since 2015, Z-score trend for top 5 most stressed cities, divergence vs pressure score scatter |
+| Affordability Signals | Z-scores, rent-income divergence since 2015, top 5 stressed cities trend, divergence vs pressure scatter |
 | Methodology & Data Sources | Metric definitions, data sources, affordability pressure score formula, assumptions |
 
 ---
 
-Executive Overview
-<img width="1280" height="719" alt="Page 1" src="https://github.com/user-attachments/assets/f2d3f739-8e80-4fe8-9a6b-74e4d1fe69fe" />
+## Pipeline Architecture
 
-Rent Affordability
-<img width="1280" height="720" alt="Page 2" src="https://github.com/user-attachments/assets/58ccdaa5-33bf-4849-9799-5db172ebc2dc" />
-
-Homeownership Affordability
-<img width="1278" height="720" alt="Page 3" src="https://github.com/user-attachments/assets/463442a3-878f-4185-b984-60e013efa905" />
-
-City Comparison Tool
-<img width="1278" height="719" alt="Page 4" src="https://github.com/user-attachments/assets/a1cc92e0-c646-42b1-aa5a-ada6792aa1f5" />
-
-Affordability Signals
-<img width="1279" height="719" alt="Page 5 (Affordability)" src="https://github.com/user-attachments/assets/74b5c210-cb9a-40ad-a988-1d6b684b2937" />
-
-Methodology & Data Sources
-<img width="1442" height="811" alt="Page 5" src="https://github.com/user-attachments/assets/85bbce99-54fa-463c-89e3-7fc1c5fb802e" />
+```
+Public Data Sources
+(Zillow, Census, BLS, FRED, HUD)
+            │
+            ▼
+  Python ETL Scripts
+  (extract, clean, normalize)
+            │
+            ▼
+  SQL Server — Staging Schema
+  (raw data, truncate on each load)
+            │
+            ▼
+  SQL Server — Production Schema
+  (fact tables, dimension tables, views)
+            │
+            ▼
+  prod.affordability_final
+  (pre-computed flat table)
+            │
+            ▼
+  Power BI Desktop
+  (import mode, DAX measures)
+            │
+            ▼
+  Interactive Dashboard
+  (6 pages, what-if parameters, city comparison)
+```
 
 ---
 
@@ -55,6 +90,7 @@ Methodology & Data Sources
 | Data storage & modeling | SQL Server 2019 (local) |
 | Visualization | Power BI Desktop |
 | Scheduling | Windows Task Scheduler (monthly) |
+| Configuration | python-dotenv (.env file) |
 
 ---
 
@@ -67,6 +103,7 @@ Methodology & Data Sources
 | U.S. Census ACS | Median Household Income (B19013) | Annual | 2015–2024 |
 | BLS LAUS | Local Area Unemployment Statistics | Monthly | 2015–2025 |
 | FRED | 30-Year Fixed Mortgage Rate (MORTGAGE30US) | Monthly | 2015–2026 |
+| HUD | Fair Market Rents (FMR) | Annual | 2015–2024 |
 
 ---
 
@@ -74,14 +111,16 @@ Methodology & Data Sources
 
 | Metric | Formula | Why It Matters |
 |---|---|---|
-| Rent-to-Income Ratio | Annual rent ÷ median household income | Measures renter burden — above 0.30 = cost burdened |
-| Home Price-to-Income Ratio | Median home price ÷ median income | Measures ownership affordability — above 5x = severely unaffordable |
-| Est. Monthly Mortgage | PMT formula — 30yr, adjustable rate and down payment | Converts home price into monthly payment reality |
-| Mortgage-to-Income Ratio | Annual mortgage ÷ median income | Above 0.28 = unaffordable by conventional standards |
+| Rent-to-Income Ratio | Annual rent ÷ median household income | Above 0.30 = cost burdened |
+| Home Price-to-Income Ratio | Median home price ÷ median income | Above 5x = severely unaffordable |
+| Est. Monthly Mortgage | PMT formula — 30yr, adjustable rate and down payment | Converts home price to monthly reality |
+| Mortgage-to-Income Ratio | Annual mortgage ÷ median income | Above 0.28 = unaffordable |
 | Rent Growth YoY | (Current rent − Prior year rent) ÷ Prior year rent | Shows whether rents are accelerating |
-| Income Growth YoY | (Current income − Prior year income) ÷ Prior year income | Measures whether purchasing power is keeping up |
-| Years to Save Down Payment | Down payment ÷ (10% of annual income) | Measures barrier to homeownership entry |
-| Affordability Pressure Score | Composite index — see formula below | Single number summarizing overall housing stress |
+| Income Growth YoY | (Current income − Prior year income) ÷ Prior year income | Measures purchasing power change |
+| Years to Save Down Payment | Down payment ÷ (10% of annual income) | Measures barrier to homeownership |
+| Affordability Pressure Score | Composite index — see formula below | Single number summarizing housing stress |
+| Affordability Z-Score | (Current RTI − Historical avg RTI) ÷ Historical std dev | Flags historically stretched conditions |
+| Rent-Income Divergence | Cumulative rent growth − cumulative income growth since 2015 | Shows structural affordability deterioration |
 
 ### Affordability Pressure Score Formula
 
@@ -91,13 +130,42 @@ Score = (Rent-to-Income ÷ 0.30) × 40
       + (Unemployment Rate ÷ 5%) × 20
 ```
 
-A score of 100 means a city hits all three affordability thresholds simultaneously. Above 100 indicates extreme stress on one or more dimensions.
+A score of 100 means a city hits all three affordability thresholds simultaneously.
+Above 100 indicates extreme stress on one or more dimensions.
+
+---
+
+## Key Insights
+
+**1. Coastal metros dominate affordability pressure**
+Los Angeles (156), San Diego (139), and New York (128) lead the Affordability Pressure Score — driven by home price-to-income ratios above 8x and rent-to-income ratios well above the 30% threshold.
+
+**2. Rent growth is outpacing income growth in most cities**
+In 2024, average rent growth across the top 25 metros ran ahead of income growth, widening the affordability gap. Tampa and Las Vegas show the largest cumulative divergence since 2015 — over 24%.
+
+**3. Affordability stress is spreading beyond coastal cities**
+St. Louis and Philadelphia — historically among the most affordable cities in America — now show Z-scores above 2, meaning rent burden has reached historically unusual levels relative to their own baselines.
+
+**4. Homeownership barriers are severe in West Coast markets**
+At 10% annual savings, a household in Los Angeles would need nearly 15 years to save a 20% down payment on the median home. In St. Louis, the same household could save a down payment in approximately 3 years.
+
+**5. Moving from a Pressure City to an Opportunity City generates significant savings**
+A household earning $75,000 annually moving from Miami to Minneapolis would save approximately $1,000/month — over $12,000 per year — based on 2024 rent data.
+
+---
+
+## Research Questions
+
+- Which cities have the largest gap between rent growth and income growth since 2015?
+- Are high-growth labor markets becoming less affordable faster than slower-growth cities?
+- Which cities offer the best affordability-adjusted economic opportunity?
+- Can rent-income divergence identify affordability stress before rent burden crosses 30%?
+- Which cities are affordable because incomes are high versus because housing is cheap?
+- How sensitive is homeownership affordability to mortgage-rate increases?
 
 ---
 
 ## City Classifications
-
-Each city is classified into one of four categories based on its rent burden and unemployment rate relative to the 25-city median:
 
 | Classification | Conditions | Interpretation |
 |---|---|---|
@@ -118,6 +186,7 @@ Built on a star schema in SQL Server with two schemas — `staging` for raw data
 - `staging.income`
 - `staging.labor`
 - `staging.mortgage_rates`
+- `staging.hud_fmr`
 
 ### Fact Tables
 - `prod.fact_rent`
@@ -125,30 +194,33 @@ Built on a star schema in SQL Server with two schemas — `staging` for raw data
 - `prod.fact_income`
 - `prod.fact_labor`
 - `prod.fact_mortgage_rates`
+- `prod.fact_hud_fmr`
 
 ### Dimension Tables
 - `prod.dim_geography` — 25 metros with coordinates, region, and crosswalk codes
 - `prod.dim_date` — 2015–2026 date spine
 - `prod.dim_scenario` — what-if parameter presets
 
-### Views (Power BI connects here)
-- `prod.vw_affordability_metrics` — pre-computed affordability metrics with fallback joins for data lag
+### Key Views & Tables (Power BI connects here)
+- `prod.vw_affordability_metrics` — pre-computed affordability metrics with fallback joins
 - `prod.vw_latest_snapshot` — most recent data point per city
 - `prod.vw_city_classification` — dynamic city classification quadrant
+- `prod.affordability_final` — materialized flat table for Power BI import performance
 
 ---
 
 ## ETL Pipeline
 
-Five Python scripts extract, clean, and load data into SQL Server. A master runner script orchestrates all five in sequence.
+Six Python scripts extract, clean, and load data into SQL Server. A master runner script orchestrates all six in sequence.
 
 ```
 run_etl.py
 ├── etl_zillow_zori.py      # Rent data
 ├── etl_zillow_zhvi.py      # Home price data
-├── etl_census_acs.py       # Income data (requires Census API key)
-├── etl_bls_laus.py         # Unemployment data (requires BLS API key)
-└── etl_fred_mortgage.py    # Mortgage rate data
+├── etl_census_acs.py       # Income data        (requires Census API key)
+├── etl_bls_laus.py         # Unemployment data  (requires BLS API key)
+├── etl_fred_mortgage.py    # Mortgage rate data
+└── etl_hud_fmr.py          # Fair market rents  (requires HUD API key)
 ```
 
 Each script follows the same pattern:
@@ -159,32 +231,44 @@ Each script follows the same pattern:
 5. Run validation query and log results
 
 ### Scheduling
-
-The pipeline runs monthly via Windows Task Scheduler using `run_etl.bat`. All ETL activity is logged to `/logs/run_etl.log`.
+The pipeline runs monthly via Windows Task Scheduler using `run_etl.bat`.
+All ETL activity is logged to `logs/run_etl.log`.
 
 ---
 
 ## Project Structure
 
 ```
-City Dashboard/
-├── run_etl.py                  # Master runner
-├── run_etl.bat                 # Task Scheduler entry point
-├── db_utils.py                 # Shared SQL Server connection
-├── etl_zillow_zori.py
-├── etl_zillow_zhvi.py
-├── etl_census_acs.py
-├── etl_bls_laus.py
-├── etl_fred_mortgage.py
-├── create_database.sql         # Full schema creation script
-├── fix_views_v2.sql            # Production view definitions
-├── logs/
+city-affordability-dashboard/
+├── run_etl.py                    # Master pipeline runner
+├── run_etl.bat                   # Task Scheduler entry point
+├── db_utils.py                   # Shared SQL Server connection
+├── etl_zillow_zori.py            # Rent ETL
+├── etl_zillow_zhvi.py            # Home price ETL
+├── etl_census_acs.py             # Income ETL
+├── etl_bls_laus.py               # Unemployment ETL
+├── etl_fred_mortgage.py          # Mortgage rate ETL
+├── etl_hud_fmr.py                # HUD fair market rents ETL
+├── create_database.sql           # Full schema creation script
+├── fix_views_v2.sql              # Production view definitions
+├── requirements.txt              # Python dependencies
+├── .env.example                  # Environment variable template
+├── .gitignore                    # Files excluded from version control
+├── screenshots/                  # Dashboard page screenshots
+│   ├── page1_executive_overview.png
+│   ├── page2_rent_affordability.png
+│   ├── page3_homeownership.png
+│   ├── page4_city_comparison.png
+│   ├── page5_methodology.png
+│   └── page6_affordability_signals.png
+├── logs/                         # ETL run logs (excluded from git)
 │   ├── run_etl.log
 │   ├── etl_zillow_zori.log
 │   ├── etl_zillow_zhvi.log
 │   ├── etl_census_acs.log
 │   ├── etl_bls_laus.log
-│   └── etl_fred_mortgage.log
+│   ├── etl_fred_mortgage.log
+│   └── etl_hud_fmr.log
 └── CityAffordability_Theme.json  # Power BI theme file
 ```
 
@@ -198,6 +282,7 @@ City Dashboard/
 - Power BI Desktop
 - Census API key — free at https://api.census.gov/data/key_signup.html
 - BLS API key — free at https://data.bls.gov/registrationEngine/
+- HUD API key — free at https://www.huduser.gov/portal/dataset/fmr-api.html
 
 ### Installation
 
@@ -209,66 +294,45 @@ cd city-affordability-dashboard
 
 **2. Install Python dependencies**
 ```bash
-pip install pandas requests pyodbc
+pip install -r requirements.txt
 ```
 
-**3. Create the database**
-
-Run `create_database.sql` in SSMS against your SQL Server instance. This creates the `CityAffordability` database, all schemas, tables, and seeds dimension data.
-
-**4. Configure API keys**
-
-Open `etl_census_acs.py` and set:
-```python
-CENSUS_API_KEY = "your_key_here"
+**3. Configure environment variables**
+```bash
+cp .env.example .env
 ```
+Open `.env` and fill in your SQL Server name and API keys.
 
-Open `etl_bls_laus.py` and set:
-```python
-BLS_API_KEY = "your_key_here"
-```
+**4. Create the database**
 
-**5. Update the connection string**
+Run `create_database.sql` in SSMS against your SQL Server instance.
+Then run `fix_views_v2.sql` to create production views.
 
-Open `db_utils.py` and update the server name if different from the default:
-```python
-CONNECTION_STRING = (
-    "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=YOUR_SERVER_NAME;"
-    "DATABASE=CityAffordability;"
-    "Trusted_Connection=yes;"
-)
-```
-
-**6. Run the ETL pipeline**
+**5. Run the ETL pipeline**
 ```bash
 python run_etl.py
 ```
 
-**7. Connect Power BI**
+**6. Connect Power BI**
 
-Open Power BI Desktop → Get Data → SQL Server → connect to your instance → import `prod.affordability_final`, `prod.dim_geography`, `prod.dim_date`, `prod.dim_scenario`, and `prod.vw_city_classification`.
+Open Power BI Desktop → Get Data → SQL Server → connect to your instance → import:
+- `prod.affordability_final`
+- `prod.dim_geography`
+- `prod.dim_date`
+- `prod.dim_scenario`
+- `prod.vw_city_classification`
 
-Apply the theme file `CityAffordability_Theme.json` via View → Themes → Browse for themes.
+Apply theme: View → Themes → Browse → select `CityAffordability_Theme.json`
 
 ---
 
-## Key Insights
+## Assumptions & Limitations
 
-**1. Coastal metros dominate affordability pressure**
-Los Angeles (119), New York (104), and San Diego (102) lead the Affordability Pressure Score — driven by home price-to-income ratios above 8x and rent-to-income ratios well above the 30% threshold.
-
-**2. Rent growth is outpacing income growth in most cities**
-In 2024, average rent growth across the top 25 metros ran ahead of income growth, widening the affordability gap. Cities where rent growth exceeds income growth are becoming structurally less affordable over time regardless of current price levels.
-
-**3. Midwest cities offer the strongest opportunity-to-cost balance**
-Minneapolis, St. Louis, and Chicago offer moderate rents relative to income with competitive labor markets — making them the strongest Opportunity City candidates in the dataset.
-
-**4. Homeownership barriers are severe in West Coast markets**
-At 10% annual savings, a household in Los Angeles would need nearly 15 years to save a 20% down payment on the median home. In St. Louis, the same household could save a down payment in approximately 6 years.
-
-**5. Moving from a Pressure City to an Opportunity City generates significant savings**
-A household earning $75,000 annually moving from Miami to Minneapolis would save approximately $1,000/month — over $12,000 per year — based on 2024 rent data.
+- **Income data lags ~1 year.** Census ACS 2024 data (released January 2026) is the most recent available. For months beyond the latest ACS release, the most recent income figure is carried forward.
+- **Mortgage calculations** use a 30-year fixed rate, 20% down payment at default settings, and the national average rate from FRED. These are adjustable via slicers on the Homeownership page.
+- **The 30% rent-to-income threshold** and 28% mortgage-to-income benchmark are general standards established by HUD and the CFPB — not absolute limits.
+- **Metro coverage** is limited to the top 25 U.S. metros by population. Smaller metros with more extreme affordability conditions are excluded by design.
+- **This project is for educational and portfolio purposes only.** It does not constitute financial, real estate, or relocation advice.
 
 ---
 
@@ -276,12 +340,12 @@ A household earning $75,000 annually moving from Miami to Minneapolis would save
 
 - [ ] Add CPI and inflation data for real wage growth calculation
 - [ ] Add population and migration data from Census ACS
-- [x] Build affordability Z-score to flag cities with historically stretched conditions
-- [x] Add rent-income divergence metric showing cumulative gap since 2015
+- [ ] Add Python-based forecasting (Prophet) for rent and affordability trends
+- [ ] Build city affordability clustering (k-means archetypes)
+- [ ] Add affordability shock detection (anomaly detection)
+- [ ] Add regression modeling to identify key affordability drivers
 - [ ] Expand to top 50 metros
-- [ ] Add Python-based forecasting (Prophet or ARIMA) for rent and affordability trends
 - [ ] Publish to Power BI Service for web access
-- [ ] Add HUD Fair Market Rents as a supplementary rent benchmark
 
 ---
 
@@ -294,4 +358,4 @@ GitHub: https://github.com/Si944-byte
 
 ## Data Disclaimer
 
-All data is sourced from publicly available government and research datasets. Zillow data is used under Zillow's research data terms. Census ACS, BLS LAUS, and FRED data are public domain. This project is for educational and portfolio purposes only.
+All data is sourced from publicly available government and research datasets. Zillow data is used under Zillow's research data terms. Census ACS, BLS LAUS, FRED, and HUD data are public domain. This project is for educational and portfolio purposes only.

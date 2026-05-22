@@ -3,22 +3,14 @@ etl_bls_laus.py
 ETL script: Bureau of Labor Statistics - Local Area Unemployment Statistics (LAUS)
 Extracts monthly unemployment rate, employment level, and labor force
 for the top 25 metros, loads into:
-  staging.labor  →  prod.fact_labor
+  staging.labor  ->  prod.fact_labor
 
-Correct series ID format (verified from BLS la.series flat file):
-  LASMT + state_fips(2) + cbsa(5) + 0000000 + measure(2)
-  Example: LASMT534266000000003 = Seattle unemployment rate
-           LAS  = prefix
-           MT   = area type (metropolitan statistical area)
-           53   = state FIPS (WA)
-           42660 = CBSA code
-           0000000 = padding (7 zeros)
-           03   = measure (03=rate, 04=unemployed, 05=employed, 06=labor force)
+Series ID format (verified from BLS la.series flat file):
+  LAUMT + state_fips(2) + cbsa(5) + 000000 + measure(2)
+  Example: LAUMT363562000000003 = New York unemployment rate
 
-Verified from BLS flat file: https://download.bls.gov/pub/time.series/la/la.series
-
-Project: City Affordability Dashboard
-Path:    C:\\Users\\TJs PC\\OneDrive\\Desktop\\Projects\\City Dashboard
+Get a free BLS API key at: https://data.bls.gov/registrationEngine/
+Set BLS_API_KEY in your .env file.
 """
 
 import os
@@ -27,42 +19,45 @@ import logging
 import math
 import requests
 import pandas as pd
+from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
 
-PROJECT_DIR = r"C:\Users\TJs PC\OneDrive\Desktop\Projects\City Dashboard"
-sys.path.insert(0, PROJECT_DIR)
+# ----------------------------------------------------------------
+# Project root and paths
+# ----------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent
+LOG_DIR  = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+load_dotenv(BASE_DIR / ".env")
+sys.path.insert(0, str(BASE_DIR))
 from db_utils import get_connection
 
-LOG_FILE = os.path.join(PROJECT_DIR, "logs", "etl_bls_laus.log")
-os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-
+# ----------------------------------------------------------------
+# Logging
+# ----------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE),
+        logging.FileHandler(LOG_DIR / "etl_bls_laus.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
 
 # ----------------------------------------------------------------
-# !! ENTER YOUR BLS API KEY HERE !!
-# Free at: https://data.bls.gov/registrationEngine/
+# BLS API key — loaded from .env
 # ----------------------------------------------------------------
-BLS_API_KEY = "YOUR_BLS_API_KEY_HERE"
-
+BLS_API_KEY = os.getenv("BLS_API_KEY", "")
 BLS_API_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
 
 # ----------------------------------------------------------------
-# Verified BLS LAUS series IDs from BLS la.series flat file
-# Format: LASMT + state_fips(2) + cbsa(5) + 0000000 + measure(2)
+# BLS LAUS series area codes (verified from BLS la.series flat file)
+# Series ID = LAUMT + state_fips(2) + cbsa(5) + 000000 + measure(2)
 # Measures: 03=unemployment rate, 05=employment, 06=labor force
-#
-# Seasonal adjusted (S prefix) versions used where available.
-# Non-seasonally adjusted (U) for metros without SA series.
 # ----------------------------------------------------------------
 METRO_SERIES = {
-    # city_display : (state_fips, cbsa)
     "New York":      ("36", "35620"),
     "Los Angeles":   ("06", "31080"),
     "Chicago":       ("17", "16980"),
@@ -90,7 +85,6 @@ METRO_SERIES = {
     "Nashville":     ("47", "34980"),
 }
 
-# Measure codes
 MEASURES = {
     "03": "unemployment_rate",
     "05": "employment_level",
@@ -99,11 +93,6 @@ MEASURES = {
 
 
 def build_series_ids():
-    """
-    Build series IDs in correct LASMT format.
-    LASMT + state(2) + cbsa(5) + 0000000 + measure(2) = 20 chars total
-    Example: LASMT534266000000003
-    """
     series_map = {}
     for city, (state_fips, cbsa) in METRO_SERIES.items():
         for measure_code, measure_name in MEASURES.items():
@@ -134,9 +123,6 @@ def to_int(v):
         return None
 
 
-# ----------------------------------------------------------------
-# Step 1: Fetch from BLS API
-# ----------------------------------------------------------------
 def fetch_bls_batch(series_list, start_year, end_year):
     payload = {
         "seriesid":      series_list,
@@ -146,25 +132,20 @@ def fetch_bls_batch(series_list, start_year, end_year):
         "calculations":  False,
         "annualaverage": False,
     }
-    if BLS_API_KEY != "YOUR_BLS_API_KEY_HERE":
+    if BLS_API_KEY:
         payload["registrationkey"] = BLS_API_KEY
 
     try:
         response = requests.post(BLS_API_URL, json=payload, timeout=60)
         response.raise_for_status()
         data = response.json()
-
         messages = data.get("message", [])
         if messages:
-            # Only log first message to avoid log spam
             logging.info(f"BLS message: {messages[0]}")
-
         if data.get("status") != "REQUEST_SUCCEEDED":
             logging.warning(f"BLS status: {data.get('status')}")
             return []
-
         return data.get("Results", {}).get("series", [])
-
     except Exception as e:
         logging.error(f"BLS API request failed: {e}")
         return []
@@ -173,74 +154,53 @@ def fetch_bls_batch(series_list, start_year, end_year):
 def download_bls():
     logging.info("Downloading BLS LAUS data...")
     all_series_map = build_series_ids()
-    series_ids = list(all_series_map.keys())
+    series_ids     = list(all_series_map.keys())
 
     logging.info(f"Total series: {len(series_ids)}")
     logging.info(f"Sample IDs: {series_ids[:3]}")
 
-    all_records = []
+    all_records  = []
     year_windows = [(2015, 2019), (2020, 2025)]
 
     for start_year, end_year in year_windows:
         logging.info(f"Fetching {start_year}-{end_year}...")
-
         for i in range(0, len(series_ids), 50):
-            batch = series_ids[i:i+50]
+            batch   = series_ids[i:i+50]
             results = fetch_bls_batch(batch, start_year, end_year)
-
             if not results:
                 logging.warning(f"No results for batch {i//50+1}")
                 continue
-
             for series in results:
                 series_id = series.get("seriesID", "")
                 if series_id not in all_series_map:
                     continue
-
                 city, measure = all_series_map[series_id]
-                data_points = series.get("data", [])
-
-                if not data_points:
-                    logging.warning(f"No data: {series_id} ({city} {measure})")
-                    continue
-
-                for obs in data_points:
+                for obs in series.get("data", []):
                     period = obs.get("period", "")
                     if not period.startswith("M") or period == "M13":
                         continue
-
                     year  = int(obs.get("year", 0))
                     month = int(period.replace("M", ""))
-                    value = obs.get("value", None)
-
                     all_records.append({
                         "city_display": city,
                         "report_date":  f"{year}-{month:02d}-01",
                         "measure":      measure,
-                        "value":        safe_float(value),
+                        "value":        safe_float(obs.get("value")),
                     })
 
     logging.info(f"Total observations fetched: {len(all_records)}")
     return pd.DataFrame(all_records) if all_records else pd.DataFrame()
 
 
-# ----------------------------------------------------------------
-# Step 2: Pivot
-# ----------------------------------------------------------------
 def parse_bls(df):
     logging.info("Parsing BLS data...")
-
     if df.empty:
         raise ValueError(
-            "No BLS data fetched. Series IDs still incorrect.\n"
-            "Next step: download the BLS series list manually.\n"
-            "  1. Go to: https://download.bls.gov/pub/time.series/la/la.series\n"
-            "  2. Save the file and search for 'New York-Newark' to find the correct series ID.\n"
-            "  3. Update METRO_SERIES in this script with the correct area codes."
+            "No BLS data fetched. Series IDs may be incorrect.\n"
+            "Verify: https://fred.stlouisfed.org/series/LAUMT363562000000003"
         )
 
     df['report_date'] = pd.to_datetime(df['report_date'])
-
     df_pivot = df.pivot_table(
         index=['city_display', 'report_date'],
         columns='measure',
@@ -254,25 +214,19 @@ def parse_bls(df):
             df_pivot[col] = None
 
     df_pivot = df_pivot[df_pivot['report_date'] >= '2015-01-01']
-
     cities_found = df_pivot['city_display'].nunique()
-    logging.info(f"Parsed {len(df_pivot)} records across {cities_found} of 25 cities")
+    logging.info(f"Parsed {len(df_pivot)} records across {cities_found} cities")
 
     missing = set(METRO_SERIES.keys()) - set(df_pivot['city_display'].unique())
     if missing:
         logging.warning(f"Missing cities: {missing}")
-
     return df_pivot
 
 
-# ----------------------------------------------------------------
-# Step 3: Load staging
-# ----------------------------------------------------------------
 def load_staging(df_pivot):
     logging.info("Loading into staging.labor...")
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("TRUNCATE TABLE staging.labor;")
     conn.commit()
 
@@ -282,7 +236,6 @@ def load_staging(df_pivot):
              employment_level, labor_force, data_source)
         VALUES (?, ?, ?, ?, ?, ?)
     """
-
     rows_inserted = 0
     errors = 0
 
@@ -300,7 +253,7 @@ def load_staging(df_pivot):
         except Exception as e:
             errors += 1
             if errors <= 5:
-                logging.warning(f"Insert failed: {e} | {row['city_display']}")
+                logging.warning(f"Insert failed: {e}")
 
     conn.commit()
     conn.close()
@@ -308,14 +261,10 @@ def load_staging(df_pivot):
     return rows_inserted
 
 
-# ----------------------------------------------------------------
-# Step 4: Load fact
-# ----------------------------------------------------------------
 def load_fact():
     logging.info("Loading into prod.fact_labor...")
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("TRUNCATE TABLE prod.fact_labor;")
     conn.commit()
 
@@ -342,56 +291,44 @@ def load_fact():
     return rows
 
 
-# ----------------------------------------------------------------
-# Step 5: Validate
-# ----------------------------------------------------------------
 def validate():
     conn = get_connection()
     cursor = conn.cursor()
-
     cursor.execute("""
-        SELECT
-            g.city_display,
-            COUNT(*)                 AS row_count,
-            MIN(d.full_date)         AS earliest,
-            MAX(d.full_date)         AS latest,
-            AVG(l.unemployment_rate) AS avg_unemp,
-            MIN(l.unemployment_rate) AS min_unemp,
-            MAX(l.unemployment_rate) AS max_unemp
+        SELECT g.city_display, COUNT(*) AS row_count,
+               MIN(d.full_date) AS earliest, MAX(d.full_date) AS latest,
+               AVG(l.unemployment_rate) AS avg_unemp,
+               MIN(l.unemployment_rate) AS min_unemp,
+               MAX(l.unemployment_rate) AS max_unemp
         FROM prod.fact_labor l
         JOIN prod.dim_geography g ON l.geo_id  = g.geo_id
         JOIN prod.dim_date d      ON l.date_id = d.date_id
         GROUP BY g.city_display
         ORDER BY avg_unemp DESC;
     """)
-
     rows = cursor.fetchall()
     print("\n--- Validation: fact_labor by city ---")
     print(f"{'City':<20} {'Rows':>6} {'Earliest':<12} {'Latest':<12} {'Avg%':>6} {'Min%':>6} {'Max%':>6}")
     print("-" * 75)
     for row in rows:
-        print(
-            f"{row.city_display:<20} {row.row_count:>6} "
-            f"{str(row.earliest):<12} {str(row.latest):<12} "
-            f"{row.avg_unemp:>6.1f} {row.min_unemp:>6.1f} {row.max_unemp:>6.1f}"
-        )
-
+        print(f"{row.city_display:<20} {row.row_count:>6} {str(row.earliest):<12} {str(row.latest):<12} {row.avg_unemp:>6.1f} {row.min_unemp:>6.1f} {row.max_unemp:>6.1f}")
     cursor.execute("SELECT COUNT(*) FROM prod.fact_labor WHERE unemployment_rate IS NULL;")
     logging.info(f"NULL unemployment values: {cursor.fetchone()[0]}")
     conn.close()
 
 
-# ----------------------------------------------------------------
-# Main
-# ----------------------------------------------------------------
 def main():
     logging.info("=" * 60)
     logging.info("ETL START: BLS LAUS")
     logging.info(f"Run time: {datetime.now()}")
     logging.info("=" * 60)
 
-    if BLS_API_KEY == "YOUR_BLS_API_KEY_HERE":
-        logging.warning("No BLS API key set.")
+    if not BLS_API_KEY:
+        logging.warning(
+            "No BLS API key set — limited to 25 series/day without one.\n"
+            "Get a free key at: https://data.bls.gov/registrationEngine/\n"
+            "Add BLS_API_KEY=your_key to your .env file."
+        )
 
     try:
         df_raw   = download_bls()
