@@ -240,36 +240,27 @@ All ETL activity is logged to `logs/run_etl.log`.
 
 ```
 city-affordability-dashboard/
-├── run_etl.py                    # Master pipeline runner
-├── run_etl.bat                   # Task Scheduler entry point
-├── db_utils.py                   # Shared SQL Server connection
-├── etl_zillow_zori.py            # Rent ETL
-├── etl_zillow_zhvi.py            # Home price ETL
-├── etl_census_acs.py             # Income ETL
-├── etl_bls_laus.py               # Unemployment ETL
-├── etl_fred_mortgage.py          # Mortgage rate ETL
-├── etl_hud_fmr.py                # HUD fair market rents ETL
-├── create_database.sql           # Full schema creation script
-├── fix_views_v2.sql              # Production view definitions
-├── requirements.txt              # Python dependencies
-├── .env.example                  # Environment variable template
-├── .gitignore                    # Files excluded from version control
-├── screenshots/                  # Dashboard page screenshots
-│   ├── page1_executive_overview.png
-│   ├── page2_rent_affordability.png
-│   ├── page3_homeownership.png
-│   ├── page4_city_comparison.png
-│   ├── page5_methodology.png
-│   └── page6_affordability_signals.png
-├── logs/                         # ETL run logs (excluded from git)
-│   ├── run_etl.log
-│   ├── etl_zillow_zori.log
-│   ├── etl_zillow_zhvi.log
-│   ├── etl_census_acs.log
-│   ├── etl_bls_laus.log
-│   ├── etl_fred_mortgage.log
-│   └── etl_hud_fmr.log
-└── CityAffordability_Theme.json  # Power BI theme file
+├── etl/
+│   ├── etl_zillow_zori.py
+│   ├── etl_zillow_zhvi.py
+│   ├── etl_census_acs.py
+│   ├── etl_bls_laus.py
+│   ├── etl_fred_mortgage.py
+│   ├── etl_hud_fmr.py
+│   ├── db_utils.py
+│   └── run_etl.py
+├── sql/
+│   ├── create_database.sql
+│   └── fix_views_v2.sql
+├── screenshots/
+│   └── (dashboard page images)
+├── theme/
+│   └── CityAffordability_Theme.json
+├── run_etl.bat
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ---
