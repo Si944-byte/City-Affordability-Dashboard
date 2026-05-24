@@ -29,10 +29,10 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 <img width="1278" height="719" alt="Page 4" src="https://github.com/user-attachments/assets/86dde315-b90d-4828-bfcb-d8cc3af6ca71" />
 
 ### Affordability Signals
-<img width="1279" height="719" alt="Page 5 (Affordability)" src="https://github.com/user-attachments/assets/7d95ce79-12da-4320-a92f-793d141f5f46" />
+<img width="1279" height="797" alt="v1 2 0 page 5" src="https://github.com/user-attachments/assets/a9f22cb0-6e5e-4dca-b17d-8b5539bcf3ef" />
 
 ### Methodology
-<img width="1442" height="811" alt="Page 5" src="https://github.com/user-attachments/assets/18ade717-bc12-4970-a897-40cb60ed471d" />
+<img width="1443" height="811" alt="v1 2 0 page 6" src="https://github.com/user-attachments/assets/069d3638-eba0-4841-b2d8-e8b1951d810a" />
 
 ---
 
