@@ -17,22 +17,22 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 ## Dashboard Screenshots
 
 ### Executive Overview
-![Executive Overview](screenshots/page1_executive_overview.png)
+<img width="1280" height="719" alt="Page 1" src="https://github.com/user-attachments/assets/b9e274aa-dff9-45a9-8c74-766c5f2adfc9" />
 
 ### Rent Affordability
-![Rent Affordability](screenshots/page2_rent_affordability.png)
+<img width="1280" height="720" alt="Page 2" src="https://github.com/user-attachments/assets/171932da-51bc-49c3-ae61-b9b9a5adffaf" />
 
 ### Homeownership Affordability
-![Homeownership](screenshots/page3_homeownership.png)
+<img width="1278" height="720" alt="Page 3" src="https://github.com/user-attachments/assets/30480802-e470-45d6-ab9f-bbb6f051dc35" />
 
 ### City Comparison Tool
-![City Comparison](screenshots/page4_city_comparison.png)
+<img width="1278" height="719" alt="Page 4" src="https://github.com/user-attachments/assets/86dde315-b90d-4828-bfcb-d8cc3af6ca71" />
 
 ### Affordability Signals
-![Affordability Signals](screenshots/page6_affordability_signals.png)
+<img width="1279" height="719" alt="Page 5 (Affordability)" src="https://github.com/user-attachments/assets/7d95ce79-12da-4320-a92f-793d141f5f46" />
 
 ### Methodology
-![Methodology](screenshots/page5_methodology.png)
+<img width="1442" height="811" alt="Page 5" src="https://github.com/user-attachments/assets/18ade717-bc12-4970-a897-40cb60ed471d" />
 
 ---
 
@@ -240,36 +240,27 @@ All ETL activity is logged to `logs/run_etl.log`.
 
 ```
 city-affordability-dashboard/
-├── run_etl.py                    # Master pipeline runner
-├── run_etl.bat                   # Task Scheduler entry point
-├── db_utils.py                   # Shared SQL Server connection
-├── etl_zillow_zori.py            # Rent ETL
-├── etl_zillow_zhvi.py            # Home price ETL
-├── etl_census_acs.py             # Income ETL
-├── etl_bls_laus.py               # Unemployment ETL
-├── etl_fred_mortgage.py          # Mortgage rate ETL
-├── etl_hud_fmr.py                # HUD fair market rents ETL
-├── create_database.sql           # Full schema creation script
-├── fix_views_v2.sql              # Production view definitions
-├── requirements.txt              # Python dependencies
-├── .env.example                  # Environment variable template
-├── .gitignore                    # Files excluded from version control
-├── screenshots/                  # Dashboard page screenshots
-│   ├── page1_executive_overview.png
-│   ├── page2_rent_affordability.png
-│   ├── page3_homeownership.png
-│   ├── page4_city_comparison.png
-│   ├── page5_methodology.png
-│   └── page6_affordability_signals.png
-├── logs/                         # ETL run logs (excluded from git)
-│   ├── run_etl.log
-│   ├── etl_zillow_zori.log
-│   ├── etl_zillow_zhvi.log
-│   ├── etl_census_acs.log
-│   ├── etl_bls_laus.log
-│   ├── etl_fred_mortgage.log
-│   └── etl_hud_fmr.log
-└── CityAffordability_Theme.json  # Power BI theme file
+├── etl/
+│   ├── etl_zillow_zori.py
+│   ├── etl_zillow_zhvi.py
+│   ├── etl_census_acs.py
+│   ├── etl_bls_laus.py
+│   ├── etl_fred_mortgage.py
+│   ├── etl_hud_fmr.py
+│   ├── db_utils.py
+│   └── run_etl.py
+├── sql/
+│   ├── create_database.sql
+│   └── fix_views_v2.sql
+├── screenshots/
+│   └── (dashboard page images)
+├── theme/
+│   └── CityAffordability_Theme.json
+├── run_etl.bat
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ---
