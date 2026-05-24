@@ -103,7 +103,7 @@ Public Data Sources
 | U.S. Census ACS | Median Household Income (B19013) | Annual | 2015–2024 |
 | BLS LAUS | Local Area Unemployment Statistics | Monthly | 2015–2025 |
 | FRED | 30-Year Fixed Mortgage Rate (MORTGAGE30US) | Monthly | 2015–2026 |
-| HUD | Fair Market Rents (FMR) | Annual | 2015–2024 |
+| HUD | Fair Market Rents (FMR) API | Annual | 2026 (current fiscal year) |
 
 ---
 
