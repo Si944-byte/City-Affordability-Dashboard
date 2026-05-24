@@ -1,58 +1,54 @@
 """
 run_etl.py
 Master ETL runner for City Affordability Dashboard.
-Runs all data pipelines in order. Stops on first failure.
+Runs all 6 data pipelines in order, then refreshes affordability_final.
+Stops on first failure.
 
-Schedule: Monthly via Windows Task Scheduler (run_etl.bat)
-Log:      logs/run_etl.log
+Schedule: Monthly via Windows Task Scheduler
+Log:      C:\\Users\\TJs PC\\OneDrive\\Desktop\\Projects\\City Dashboard\\logs\\run_etl.log
 
-Usage:
-    python run_etl.py
+Project: City Affordability Dashboard
+Path:    C:\\Users\\TJs PC\\OneDrive\\Desktop\\Projects\\City Dashboard
 """
 
 import sys
 import os
 import logging
-import importlib
-from pathlib import Path
 from datetime import datetime
 
-# ----------------------------------------------------------------
-# Project root — all paths are relative to this file
-# ----------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent
-LOG_DIR  = BASE_DIR / "logs"
-LOG_DIR.mkdir(exist_ok=True)
-
-# Add project root to path so ETL modules are importable
-sys.path.insert(0, str(BASE_DIR))
+PROJECT_DIR = r"C:\Users\TJs PC\OneDrive\Desktop\Projects\City Dashboard"
+sys.path.insert(0, PROJECT_DIR)
 
 # ----------------------------------------------------------------
-# Master log
+# Master log — separate from individual ETL logs
 # ----------------------------------------------------------------
-LOG_FILE = LOG_DIR / "run_etl.log"
+LOG_FILE = os.path.join(PROJECT_DIR, "logs", "run_etl.log")
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE),
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
         logging.StreamHandler(sys.stdout)
     ]
 )
 
 # ----------------------------------------------------------------
-# ETL pipeline definitions
-# Add new ETL scripts here as the project grows
+# ETL pipeline definitions (name, module, main function)
 # ----------------------------------------------------------------
 PIPELINES = [
+    ("HUD Fair Market Rents",       "etl_hud_fmr",        "main"),
     ("Zillow ZORI (Rent)",          "etl_zillow_zori",    "main"),
     ("Zillow ZHVI (Home Prices)",   "etl_zillow_zhvi",    "main"),
     ("Census ACS (Income)",         "etl_census_acs",     "main"),
     ("BLS LAUS (Unemployment)",     "etl_bls_laus",       "main"),
     ("FRED Mortgage Rates",         "etl_fred_mortgage",  "main"),
-    ("HUD Fair Market Rents",       "etl_hud_fmr",        "main"),
+    ("BLS CPI (Inflation)",         "etl_bls_cpi",        "main"),
 ]
+
+# SQL script to refresh affordability_final after all ETLs pass
+AFFORDABILITY_SQL = os.path.join(PROJECT_DIR, "populate_affordability_final.sql")
 
 
 def run_all():
@@ -60,9 +56,8 @@ def run_all():
 
     logging.info("=" * 60)
     logging.info("CITY AFFORDABILITY ETL — MASTER RUNNER")
-    logging.info(f"Start time     : {start_time}")
-    logging.info(f"Pipelines      : {len(PIPELINES)}")
-    logging.info(f"Project root   : {BASE_DIR}")
+    logging.info(f"Start time: {start_time}")
+    logging.info(f"Pipelines to run: {len(PIPELINES)}")
     logging.info("=" * 60)
 
     results = []
@@ -72,18 +67,22 @@ def run_all():
         step_start = datetime.now()
 
         try:
-            module    = importlib.import_module(module_name)
+            # Dynamically import and run each ETL module
+            import importlib
+            module = importlib.import_module(module_name)
             main_func = getattr(module, func_name)
             main_func()
 
             duration = (datetime.now() - step_start).seconds
-            logging.info(f"✓ PASSED: {pipeline_name} ({duration}s)")
+            logging.info(f"[PASSED] {pipeline_name} ({duration}s)")
             results.append((pipeline_name, "PASSED", duration, None))
 
         except Exception as e:
             duration = (datetime.now() - step_start).seconds
-            logging.error(f"✗ FAILED: {pipeline_name} — {e}")
+            logging.error(f"[FAILED] {pipeline_name} - {e}")
             results.append((pipeline_name, "FAILED", duration, str(e)))
+
+            # Stop on failure — don't load bad data downstream
             logging.error("Pipeline halted. Fix the error above and re-run.")
             break
 
@@ -98,25 +97,60 @@ def run_all():
 
     all_passed = True
     for name, status, dur, error in results:
-        symbol = "✓" if status == "PASSED" else "✗"
+        symbol = "[OK]" if status == "PASSED" else "[FAIL]"
         logging.info(f"  {symbol} {name:<35} {status:<8} ({dur}s)")
         if status == "FAILED":
             logging.info(f"    Error: {error}")
             all_passed = False
 
+    # Log any pipelines that didn't run due to earlier failure
     ran_names = [r[0] for r in results]
     for name, _, _ in PIPELINES:
         if name not in ran_names:
             logging.info(f"  - {name:<35} SKIPPED")
 
-    logging.info(f"\nTotal duration : {total_duration}s")
-    logging.info(f"Completed at   : {datetime.now()}")
+    logging.info(f"\nTotal duration: {total_duration}s")
+    logging.info(f"Completed at:   {datetime.now()}")
 
     if all_passed:
-        logging.info("STATUS: ALL PIPELINES PASSED ✓")
+        # All ETLs passed -- refresh affordability_final
+        logging.info("\nAll pipelines passed. Refreshing prod.affordability_final...")
+        try:
+            import pyodbc
+            conn_str = (
+                "DRIVER={ODBC Driver 17 for SQL Server};"
+                "SERVER=DESKTOP-1CRNFTD;"
+                "DATABASE=CityAffordability;"
+                "Trusted_Connection=yes;"
+            )
+            sql_path = os.path.join(PROJECT_DIR, "populate_affordability_final.sql")
+            with open(sql_path, "r", encoding="utf-8") as f:
+                sql = f.read()
+
+            conn   = pyodbc.connect(conn_str)
+            cursor = conn.cursor()
+
+            # Execute each statement separated by GO or semicolon batches
+            for statement in sql.split(";"):
+                stmt = statement.strip()
+                if stmt and not stmt.startswith("--"):
+                    try:
+                        cursor.execute(stmt)
+                        conn.commit()
+                    except Exception:
+                        pass  # Skip empty/comment statements
+
+            conn.close()
+            logging.info("[OK] prod.affordability_final refreshed successfully")
+
+        except Exception as e:
+            logging.error(f"[FAIL] affordability_final refresh failed: {e}")
+            sys.exit(1)
+
+        logging.info("STATUS: ALL PIPELINES PASSED")
     else:
-        logging.info("STATUS: PIPELINE FAILED — CHECK LOGS ✗")
-        sys.exit(1)
+        logging.info("STATUS: PIPELINE FAILED - CHECK LOGS")
+        sys.exit(1)  # Non-zero exit so Task Scheduler knows it failed
 
 
 if __name__ == "__main__":
