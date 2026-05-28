@@ -20,7 +20,7 @@ A cheap city with weak wages and high unemployment may not be truly affordable. 
 <img width="1280" height="719" alt="Page 1" src="https://github.com/user-attachments/assets/b9e274aa-dff9-45a9-8c74-766c5f2adfc9" />
 
 ### Rent Affordability
-<img width="1280" height="720" alt="Page 2" src="https://github.com/user-attachments/assets/171932da-51bc-49c3-ae61-b9b9a5adffaf" />
+<img width="1280" height="719" alt="Page 2" src="https://github.com/user-attachments/assets/78db21fe-f779-4785-828e-ea86962c2357" />
 
 ### Homeownership Affordability
 <img width="1278" height="720" alt="Page 3" src="https://github.com/user-attachments/assets/30480802-e470-45d6-ab9f-bbb6f051dc35" />
